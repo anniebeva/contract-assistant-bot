@@ -6,6 +6,7 @@ load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if TELEGRAM_TOKEN is None:
     raise ValueError("TELEGRAM_TOKEN не найден в .env")
