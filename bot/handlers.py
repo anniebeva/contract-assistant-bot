@@ -9,8 +9,9 @@ from pypdf import PdfReader
 from docx import Document
 from bot.conversation import add_to_history, get_history, reset_history
 from llm.client import call_groq
-from llm.prompts import SYSTEM_PROMPT
+from llm.prompts import SYSTEM_PROMPT, SYSTEM_PROMPT_QUESTION
 from config.settings import MAX_HISTORY
+from rag.keyword_retriever import retrieve_context
 
 # Вспомогательная функция для извлечения текста из файла
 async def extract_text_from_file(document) -> tuple[str, str | None]:
@@ -90,7 +91,7 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await message.reply_text("История диалога очищена.")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка текстовых сообщений"""
+    """Обработка текстовых сообщений: вопросы → RAG, договоры → проверка"""
     message = update.message
     if message is None:
         return
@@ -100,11 +101,49 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     text = message.text
     if not text or not text.strip():
-        await message.reply_text("Пожалуйста, отправьте текст договора.")
+        await message.reply_text("Пожалуйста, отправьте текст договора или задайте вопрос.")
         return
-    
-    await message.chat.send_action(action=ChatAction.TYPING)
-    await process_text(user.id, text, message.reply_text)
+
+    # ---- Определяем тип запроса ----
+    # Вопрос, если длина < 300 символов и нет явных договорных маркеров
+    is_question = len(text) < 300 and not any(
+        word in text.lower() for word in ["договор", "стороны", "поставка", "платеж", "сумма", "штраф", "пеня"]
+    )
+
+    if is_question:
+        # ---- Вопрос к базе знаний ----
+        await message.chat.send_action(action=ChatAction.TYPING)
+        fragments = retrieve_context(text)
+        if fragments:
+            context_str = "\n\n---\n\n".join([f["content"] for f in fragments])
+            # Формируем промпт с контекстом
+            from llm.prompts import SYSTEM_PROMPT_QUESTION
+            system_prompt = SYSTEM_PROMPT_QUESTION.format(context=context_str, question=text)
+            messages = [{"role": "system", "content": system_prompt}]
+        else:
+            await message.reply_text("В базе знаний не найдено информации по вашему запросу. Пожалуйста, уточните вопрос или обратитесь к юристу.")
+            return
+    else:
+        # ---- Проверка договора (старая логика) ----
+        await message.chat.send_action(action=ChatAction.TYPING)
+        add_to_history(user.id, "user", text, MAX_HISTORY)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}] + get_history(user.id)
+
+    # ---- Вызов LLM ----
+    try:
+        reply = await call_groq(messages)
+        if not is_question:  # Для договора сохраняем ответ в историю
+            add_to_history(user.id, "assistant", reply, MAX_HISTORY)
+    except Exception as e:
+        logging.error(f"LLM error: {e}")
+        reply = "⚠️ Ошибка при вызове модели. Попробуйте позже."
+
+    # ---- Отправка ответа ----
+    if len(reply) > 4000:
+        for i in range(0, len(reply), 4000):
+            await message.reply_text(reply[i:i+4000])
+    else:
+        await message.reply_text(reply)
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка файлов (PDF, DOCX) с проверкой размера и заглушкой антивируса"""
