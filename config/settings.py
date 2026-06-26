@@ -14,7 +14,7 @@ if GROQ_API_KEY is None:
     raise ValueError("GROQ_API_KEY не найден в .env")
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-LLM_MODEL = "llama-3.1-8b-instant"
+LLM_MODEL = "llama-3.3-70b-versatile"
 MAX_HISTORY = 10
 LLM_TIMEOUT = 30.0
 

@@ -100,6 +100,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text("Не удалось идентифицировать пользователя.")
         return
     text = message.text
+    print(f"📩 Получено сообщение: {text}")
     if not text or not text.strip():
         await message.reply_text("Пожалуйста, отправьте текст договора или задайте вопрос.")
         return
