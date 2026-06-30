@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-# хранилище историй: user_id -> list of dicts
 histories = defaultdict(list)
 
 def add_to_history(user_id: int, role: str, content: str, max_history: int):

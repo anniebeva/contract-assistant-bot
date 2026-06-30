@@ -9,21 +9,17 @@ from bot.handlers import start, reset, handle_message, handle_document
 
 logging.basicConfig(level=logging.INFO)
 
-# Проверка токена
 if TELEGRAM_TOKEN is None:
     raise ValueError("TELEGRAM_TOKEN не задан")
 
-# Flask-приложение
 app = Flask(__name__)
 
-# Telegram-приложение (без polling)
 bot_app = Application.builder().token(TELEGRAM_TOKEN).build()
 bot_app.add_handler(CommandHandler("start", start))
 bot_app.add_handler(CommandHandler("reset", reset))
 bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 bot_app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
-# Эндпоинт для вебхука
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
@@ -35,7 +31,6 @@ def webhook():
         logging.error(f"Webhook error: {e}")
         return jsonify({"status": "error", "msg": str(e)}), 500
 
-# Проверка работоспособности
 @app.route('/')
 def index():
     return "Bot is running!"
