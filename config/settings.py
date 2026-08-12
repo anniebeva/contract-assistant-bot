@@ -17,4 +17,3 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 LLM_MODEL = "llama-3.3-70b-versatile"
 MAX_HISTORY = 10
 LLM_TIMEOUT = 30.0
-

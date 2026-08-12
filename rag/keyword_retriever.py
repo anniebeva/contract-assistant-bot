@@ -3,23 +3,76 @@ from pathlib import Path
 from typing import List, Dict
 
 KNOWLEDGE_DIR = "mock_knowledge_base"
-STOP_WORDS = {'и', 'в', 'на', 'с', 'по', 'к', 'у', 'за', 'из', 'о', 'об', 'при', 'без', 'до', 'для', 'через', 'около', 'от', 'до', 'про', 'а', 'но', 'или', 'либо', 'да', 'не', 'ни', 'что', 'как', 'так', 'это', 'его', 'её', 'их', 'твой', 'ваш', 'который', 'весь', 'этот', 'тот', 'такой', 'там', 'тут', 'где', 'когда', 'почему', 'зачем', 'кто', 'что'}
+STOP_WORDS = {
+    "и",
+    "в",
+    "на",
+    "с",
+    "по",
+    "к",
+    "у",
+    "за",
+    "из",
+    "о",
+    "об",
+    "при",
+    "без",
+    "до",
+    "для",
+    "через",
+    "около",
+    "от",
+    "до",
+    "про",
+    "а",
+    "но",
+    "или",
+    "либо",
+    "да",
+    "не",
+    "ни",
+    "что",
+    "как",
+    "так",
+    "это",
+    "его",
+    "её",
+    "их",
+    "твой",
+    "ваш",
+    "который",
+    "весь",
+    "этот",
+    "тот",
+    "такой",
+    "там",
+    "тут",
+    "где",
+    "когда",
+    "почему",
+    "зачем",
+    "кто",
+    "что",
+}
+
 
 def read_files() -> Dict[str, str]:
     files = {}
     for filepath in Path(KNOWLEDGE_DIR).glob("*.md"):
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, "r", encoding="utf-8") as f:
             files[filepath.name] = f.read()
     return files
+
 
 def tokenize(text: str) -> set:
     words = text.lower().split()
     clean = []
     for w in words:
-        w = w.strip('.,!?;:()[]{}"\'')
+        w = w.strip(".,!?;:()[]{}\"'")
         if w and w not in STOP_WORDS:
             clean.append(w)
     return set(clean)
+
 
 def retrieve_context(query: str, top_k: int = 3) -> List[Dict]:
     query_words = tokenize(query)
@@ -30,7 +83,7 @@ def retrieve_context(query: str, top_k: int = 3) -> List[Dict]:
     candidates = []
 
     for filename, content in files.items():
-        paragraphs = content.split('\n\n')
+        paragraphs = content.split("\n\n")
         for idx, para in enumerate(paragraphs):
             if len(para.strip()) < 20:
                 continue
@@ -50,4 +103,7 @@ def retrieve_context(query: str, top_k: int = 3) -> List[Dict]:
         for filename, para, idx, score in top:
             print(f"    - {filename} (абзац {idx}, совпадений: {score})")
 
-    return [{"content": para, "metadata": {"source": filename, "chunk_id": idx}} for filename, para, idx, _ in top]
+    return [
+        {"content": para, "metadata": {"source": filename, "chunk_id": idx}}
+        for filename, para, idx, _ in top
+    ]
