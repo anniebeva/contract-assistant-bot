@@ -18,5 +18,9 @@ async def call_groq(messages: list) -> str:
     }
     async with httpx.AsyncClient(timeout=LLM_TIMEOUT) as client:
         resp = await client.post(GROQ_URL, json=payload, headers=headers)
+
+        logging.info(f"Groq response status: {resp.status_code}")
+        logging.info(f"Groq response body: {resp.text}")
+
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"]
